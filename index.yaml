@@ -1,5 +1,35 @@
 apiVersion: v1
 entries:
+  kyverno:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: added
+          description: Add additional policies and properties
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: v1.10.3
+    created: "2023-06-08T09:30:22.917754527Z"
+    description: Custom Kubernetes Pod Security implemented as Kyverno policies
+    digest: e5ba6acd97c91eaa78dd35312869caf60f503137a9ac86286e6f5ae4d6678c5a
+    home: https://kyverno.io/policies/
+    icon: https://github.com/kyverno/kyverno/raw/main/img/logo.png
+    keywords:
+    - kubernetes
+    - rahu2000
+    - policy
+    kubeVersion: '>=1.16.0-0'
+    maintainers:
+    - email: rahu2000@naver.com
+      name: rahu2000
+      url: https://github.com/Rahu2000
+    name: kyverno
+    sources:
+    - https://github.com/kyverno/policies
+    type: application
+    urls:
+    - https://github.com/Rahu2000/charts/releases/download/kyverno-v0.1.1/kyverno-v0.1.1.tgz
+    version: v0.1.1
   kyverno-policies:
   - annotations:
       artifacthub.io/changes: |
@@ -63,4 +93,4 @@ entries:
     urls:
     - https://github.com/Rahu2000/charts/releases/download/kyverno-policies-v0.1.0/kyverno-policies-v0.1.0.tgz
     version: v0.1.0
-generated: "2023-06-08T08:31:20.78127937Z"
+generated: "2023-06-08T09:30:22.917761927Z"
