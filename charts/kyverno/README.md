@@ -1,12 +1,12 @@
-# kyverno-additional-policies
+# kyverno
 
 Custom Kubernetes Pod Security implemented as Kyverno policies
 
-![Version: v0.1.0](https://img.shields.io/badge/Version-v0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.10.3](https://img.shields.io/badge/AppVersion-v1.10.3-informational?style=flat-square)
+![Version: v0.1.1](https://img.shields.io/badge/Version-v0.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.10.3](https://img.shields.io/badge/AppVersion-v1.10.3-informational?style=flat-square)
 
 ## About
 
-This chart contains Kyverno's implementation of the Kubernetes policies as documented at https://kyverno.io/policies/pod-security/ and are a Helm packaged version of those found at https://github.com/psa-terraform/kyverno/tree/main/charts/kyverno-additional-policies.
+This chart contains Kyverno's implementation of the Kubernetes policies as documented at https://kyverno.io/policies/pod-security/ and are a Helm packaged version of those found at https://github.com/Rahu2000/charts/tree/main/charts/kyverno.
 
 The following policies are included in each profile.
 
@@ -66,8 +66,11 @@ For the latest version of these policies, always refer to the kyverno/policies r
 These additional policies presently have a minimum requirement of Kyverno 1.6.0.
 
 ```console
+## Add Helm repo
+helm repo add k8s-policies https://rahu2000.github.io/charts/
+
 ## Install the Kyverno additional policies Helm chart
-$ helm install kyverno-additional-policies --namespace kyverno .
+helm install kyverno-additional-policies k8s-policies/kyverno --namespace kyverno
 ```
 
 ## Uninstalling the Chart
@@ -75,7 +78,7 @@ $ helm install kyverno-additional-policies --namespace kyverno .
 To uninstall/delete the `kyverno-additional-policies` chart:
 
 ```console
-$ helm delete -n kyverno kyverno-additional-policies
+helm delete -n kyverno kyverno-additional-policies
 ```
 
 The command removes all the Kubernetes components associated with the chart and deletes the release.
@@ -119,4 +122,4 @@ Kubernetes: `>=1.16.0-0`
 
 | Name | Email | Url |
 | ---- | ------ | --- |
-| rahu2000 | <rahu2000@naver.com> | <https://github.com/psa-terraform/> |
+| rahu2000 | <rahu2000@naver.com> | <https://github.com/Rahu2000> |
