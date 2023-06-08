@@ -1,0 +1,137 @@
+{{- $name := "allowed-image-repos" }}
+{{- if eq (include "kyverno-additional-policies.podSecurityRecommend" (merge (dict "name" $name) .)) "true" }}
+{{- include "kyverno-additional-policies.supportedKyvernoCheck" (dict "top" . "ver" ">= 1.6.0-0") }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ $name }}
+  annotations:
+    {{- with .Values.autogenControllers }}
+    pod-policies.kyverno.io/autogen-controllers: {{ . }}
+    {{- end }}
+    policies.kyverno.io/title: Allowed Image Repositories
+    policies.kyverno.io/category: Recommend
+    policies.kyverno.io/severity: medium
+    kyverno.io/kyverno-version: 1.9.0
+    kyverno.io/kubernetes-version: "1.24"
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      In addition to restricting the image registry from which images are pulled, in some cases
+      and environments it may be required to also restrict which image repositories are used,
+      for example in some restricted Namespaces. This policy ensures that the only allowed
+      image repositories present in a given Pod, across any container type, come from the
+      designated list.
+  labels: {{ include "kyverno-additional-policies.labels" . | nindent 4 }}
+spec:
+  {{- with index .Values "validationFailureActionByPolicy" $name }}
+  validationFailureAction: {{ toYaml . }}
+  {{- else }}
+  validationFailureAction: {{ .Values.validationFailureAction }}
+  {{- end }}
+  {{- with concat (index .Values "validationFailureActionOverrides" "all") (default list (index .Values "validationFailureActionOverrides" $name)) }}
+  validationFailureActionOverrides: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  background: false
+  failurePolicy: {{ .Values.failurePolicy }}
+  rules:
+    - name: validate-image-repos
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      {{- with index .Values "policyExclude" $name }}
+      exclude:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with index .Values "policyPreconditions" $name }}
+      preconditions:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      validate:
+        message: >-
+          All images in this Pod must come from an authorized repository.
+        deny:
+          {{- with index .Values "policyOverrides" $name }}
+          conditions:
+            {{- if .all }}
+            all:
+              - key: "{{`{{ images.[containers, initContainers, ephemeralContainers][].*.name[] }}`}}"
+                operator: AnyNotIn
+                value:
+                  - 877085696533.dkr.ecr.af-south-1.amazonaws.com
+                  - 800184023465.dkr.ecr.ap-east-1.amazonaws.com
+                  - 602401143452.dkr.ecr.ap-northeast-1.amazonaws.com
+                  - 602401143452.dkr.ecr.ap-northeast-2.amazonaws.com
+                  - 602401143452.dkr.ecr.ap-northeast-3.amazonaws.com
+                  - 602401143452.dkr.ecr.ap-south-1.amazonaws.com
+                  - 900889452093.dkr.ecr.ap-south-2.amazonaws.com
+                  - 602401143452.dkr.ecr.ap-southeast-1.amazonaws.com
+                  - 602401143452.dkr.ecr.ap-southeast-2.amazonaws.com
+                  - 296578399912.dkr.ecr.ap-southeast-3.amazonaws.com
+                  - 491585149902.dkr.ecr.ap-southeast-4.amazonaws.com
+                  - 602401143452.dkr.ecr.ca-central-1.amazonaws.com
+                  - 918309763551.dkr.ecr.cn-north-1.amazonaws.com.cn
+                  - 961992271922.dkr.ecr.cn-northwest-1.amazonaws.com.cn
+                  - 602401143452.dkr.ecr.eu-central-1.amazonaws.com
+                  - 900612956339.dkr.ecr.eu-central-2.amazonaws.com
+                  - 602401143452.dkr.ecr.eu-north-1.amazonaws.com
+                  - 590381155156.dkr.ecr.eu-south-1.amazonaws.com
+                  - 455263428931.dkr.ecr.eu-south-2.amazonaws.com
+                  - 602401143452.dkr.ecr.eu-west-1.amazonaws.com
+                  - 602401143452.dkr.ecr.eu-west-2.amazonaws.com
+                  - 602401143452.dkr.ecr.eu-west-3.amazonaws.com
+                  - 558608220178.dkr.ecr.me-south-1.amazonaws.com
+                  - 759879836304.dkr.ecr.me-central-1.amazonaws.com
+                  - 602401143452.dkr.ecr.sa-east-1.amazonaws.com
+                  - 602401143452.dkr.ecr.us-east-1.amazonaws.com
+                  - 602401143452.dkr.ecr.us-east-2.amazonaws.com
+                  - 151742754352.dkr.ecr.us-gov-east-1.amazonaws.com
+                  - 013241004608.dkr.ecr.us-gov-west-1.amazonaws.com
+                  - 602401143452.dkr.ecr.us-west-1.amazonaws.com
+                  - 602401143452.dkr.ecr.us-west-2.amazonaws.com
+                  - kyverno
+            {{- toYaml .any | nindent 12 }}
+            {{- else }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- else }}
+          conditions:
+            all:
+              - key: "{{`{{ images.[containers, initContainers, ephemeralContainers][].*.name[] }}`}}"
+                operator: AnyNotIn
+                value:
+                  - 877085696533.dkr.ecr.af-south-1.amazonaws.com
+                  - 800184023465.dkr.ecr.ap-east-1.amazonaws.com
+                  - 602401143452.dkr.ecr.ap-northeast-1.amazonaws.com
+                  - 602401143452.dkr.ecr.ap-northeast-2.amazonaws.com
+                  - 602401143452.dkr.ecr.ap-northeast-3.amazonaws.com
+                  - 602401143452.dkr.ecr.ap-south-1.amazonaws.com
+                  - 900889452093.dkr.ecr.ap-south-2.amazonaws.com
+                  - 602401143452.dkr.ecr.ap-southeast-1.amazonaws.com
+                  - 602401143452.dkr.ecr.ap-southeast-2.amazonaws.com
+                  - 296578399912.dkr.ecr.ap-southeast-3.amazonaws.com
+                  - 491585149902.dkr.ecr.ap-southeast-4.amazonaws.com
+                  - 602401143452.dkr.ecr.ca-central-1.amazonaws.com
+                  - 918309763551.dkr.ecr.cn-north-1.amazonaws.com.cn
+                  - 961992271922.dkr.ecr.cn-northwest-1.amazonaws.com.cn
+                  - 602401143452.dkr.ecr.eu-central-1.amazonaws.com
+                  - 900612956339.dkr.ecr.eu-central-2.amazonaws.com
+                  - 602401143452.dkr.ecr.eu-north-1.amazonaws.com
+                  - 590381155156.dkr.ecr.eu-south-1.amazonaws.com
+                  - 455263428931.dkr.ecr.eu-south-2.amazonaws.com
+                  - 602401143452.dkr.ecr.eu-west-1.amazonaws.com
+                  - 602401143452.dkr.ecr.eu-west-2.amazonaws.com
+                  - 602401143452.dkr.ecr.eu-west-3.amazonaws.com
+                  - 558608220178.dkr.ecr.me-south-1.amazonaws.com
+                  - 759879836304.dkr.ecr.me-central-1.amazonaws.com
+                  - 602401143452.dkr.ecr.sa-east-1.amazonaws.com
+                  - 602401143452.dkr.ecr.us-east-1.amazonaws.com
+                  - 602401143452.dkr.ecr.us-east-2.amazonaws.com
+                  - 151742754352.dkr.ecr.us-gov-east-1.amazonaws.com
+                  - 013241004608.dkr.ecr.us-gov-west-1.amazonaws.com
+                  - 602401143452.dkr.ecr.us-west-1.amazonaws.com
+                  - 602401143452.dkr.ecr.us-west-2.amazonaws.com
+                  - kyverno
+          {{- end }}
+{{- end }}

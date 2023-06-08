@@ -1,0 +1,60 @@
+{{- $name := "restrict-ingress-annotations" }}
+{{- if eq (include "kyverno-additional-policies.podSecurityOnNginx" (merge (dict "name" $name) .)) "true" }}
+{{- include "kyverno-additional-policies.supportedKyvernoCheck" (dict "top" . "ver" ">= 1.6.0-0") }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ $name }}
+  annotations:
+    {{- with .Values.autogenControllers }}
+    pod-policies.kyverno.io/autogen-controllers: {{ . }}
+    {{- end }}
+    policies.kyverno.io/title: Restrict NGINX Ingress annotation values
+    policies.kyverno.io/category: Security, NGINX Ingress
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Ingress
+    policies.kyverno.io/minversion: "1.6.0"
+    kyverno.io/kyverno-version: "1.6.0"
+    kyverno.io/kubernetes-version: "1.23"
+    policies.kyverno.io/description: >-
+      This policy mitigates CVE-2021-25746 by restricting `metadata.annotations` to safe values.
+      See: https://github.com/kubernetes/ingress-nginx/blame/main/internal/ingress/inspector/rules.go.
+      This issue has been fixed in NGINX Ingress v1.2.0. For NGINX Ingress version 1.0.5+ the
+      "annotation-value-word-blocklist" configuration setting is also recommended.
+      Please refer to the CVE for details.
+  labels: {{ include "kyverno-additional-policies.labels" . | nindent 4 }}
+spec:
+  validationFailureAction: Enforce
+  {{- with concat (index .Values "validationFailureActionOverrides" "all") (default list (index .Values "validationFailureActionOverrides" $name)) }}
+  validationFailureActionOverrides: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  background: {{ .Values.background }}
+  failurePolicy: {{ .Values.failurePolicy }}
+  rules:
+    - name: restrict-ingress-annotations
+      match:
+        any:
+          - resources:
+              kinds:
+                - networking.k8s.io/v1/Ingress
+      validate:
+        message: "spec.rules[].http.paths[].path value is not allowed"
+        deny:
+          conditions:
+            any:
+              - key: "{{`{{request.object.metadata.annotations.values(@)[].regex_match('\\s*alias\\s*.*;', @)}}` }}"
+                operator: AnyIn
+                value: [true]
+              - key: "{{`{{request.object.metadata.annotations.values(@)[].regex_match('\\s*root\\s*.*;', @)}}` }}"
+                operator: AnyIn
+                value: [true]
+              - key: "{{`{{request.object.metadata.annotations.values(@)[].regex_match('/etc/(passwd|shadow|group|nginx|ingress-controller)', @)}}` }}"
+                operator: AnyIn
+                value: [true]
+              - key: "{{`{{request.object.metadata.annotations.values(@)[].regex_match('/var/run/secrets', @)}}` }}"
+                operator: AnyIn
+                value: [true]
+              - key: "{{`{{request.object.metadata.annotations.values(@)[].regex_match('.*_by_lua.*', @)}}` }}"
+                operator: AnyIn
+                value: [true]
+{{- end }}

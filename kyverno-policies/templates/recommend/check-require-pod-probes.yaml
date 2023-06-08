@@ -1,0 +1,83 @@
+{{- $name := "check-require-pod-probes" }}
+{{- if eq (include "kyverno-additional-policies.podSecurityRecommend" (merge (dict "name" $name) .)) "true" }}
+{{- include "kyverno-additional-policies.supportedKyvernoCheck" (dict "top" . "ver" ">= 1.6.0-0") }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ $name }}
+  annotations:
+    pod-policies.kyverno.io/autogen-controllers: DaemonSet,Deployment,StatefulSet
+    policies.kyverno.io/title: Require Pod Probes
+    policies.kyverno.io/category: Recommend
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Liveness and readiness probes need to be configured to correctly manage a Pod's
+      lifecycle during deployments, restarts, and upgrades. For each Pod, a periodic
+      `livenessProbe` is performed by the kubelet to determine if the Pod's containers
+      are running or need to be restarted. A `readinessProbe` is used by Services
+      and Deployments to determine if the Pod is ready to receive network traffic.
+      This policy validates that all containers have one of livenessProbe, readinessProbe,
+      or startupProbe defined.
+  labels: {{ include "kyverno-additional-policies.labels" . | nindent 4 }}
+spec:
+  {{- with index .Values "validationFailureActionByPolicy" $name }}
+  validationFailureAction: {{ toYaml . }}
+  {{- else }}
+  validationFailureAction: {{ .Values.validationFailureAction }}
+  {{- end }}
+  {{- with concat (index .Values "validationFailureActionOverrides" "all") (default list (index .Values "validationFailureActionOverrides" $name)) }}
+  validationFailureActionOverrides: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  background: {{ .Values.background }}
+  failurePolicy: {{ .Values.failurePolicy }}
+  rules:
+    - name: validate-pod-probes
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      {{- with index .Values "policyExclude" $name }}
+      exclude:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with index .Values "policyPreconditions" $name }}
+      preconditions:
+        {{- if .all }}
+        all:
+          - key: "{{`{{request.operation || 'BACKGROUND'}}`}}"
+            operator: AnyIn
+            value:
+              - CREATE
+              - UPDATE
+        {{- toYaml .all | nindent 8 }}
+        {{- else }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- else }}
+      preconditions:
+        all:
+          - key: "{{`{{request.operation || 'BACKGROUND'}}`}}"
+            operator: AnyIn
+            value:
+              - CREATE
+              - UPDATE
+      {{- end }}
+      validate:
+        message: "Liveness, readiness, or startup probes are required for all containers."
+        foreach:
+          - list: request.object.spec.containers[]
+            deny:
+              conditions:
+                all:
+                  - key: livenessProbe
+                    operator: AllNotIn
+                    value: "{{ `{{element.keys(@)[] }}`}}"
+                  - key: startupProbe
+                    operator: AllNotIn
+                    value: "{{ `{{element.keys(@)[] }}`}}"
+                  - key: readinessProbe
+                    operator: AllNotIn
+                    value: "{{ `{{element.keys(@)[] }}`}}"
+{{- end }}

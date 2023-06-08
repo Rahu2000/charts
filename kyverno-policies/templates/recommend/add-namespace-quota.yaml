@@ -1,0 +1,114 @@
+{{- $name := "add-namespace-quota" }}
+{{- if eq (include "kyverno-additional-policies.podSecurityRecommend" (merge (dict "name" $name) .)) "true" }}
+{{- include "kyverno-additional-policies.supportedKyvernoCheck" (dict "top" . "ver" ">= 1.6.0-0") }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ $name }}
+  annotations:
+    {{- with .Values.autogenControllers }}
+    pod-policies.kyverno.io/autogen-controllers: {{ . }}
+    {{- end }}
+    policies.kyverno.io/title: Add Quota
+    policies.kyverno.io/category: Multi-Tenancy, Best Practices
+    policies.kyverno.io/severity: low
+    policies.kyverno.io/subject: ResourceQuota, LimitRange
+    policies.kyverno.io/minversion: 1.6.0
+    kyverno.io/kyverno-version: 1.6.0
+    policies.kyverno.io/description: >-
+      To better control the number of resources that can be created in a given
+      Namespace and provide default resource consumption limits for Pods,
+      ResourceQuota and LimitRange resources are recommended.
+      This policy will generate ResourceQuota and LimitRange resources when
+      a new Namespace is created.
+  labels: {{ include "kyverno-additional-policies.labels" . | nindent 4 }}
+spec:
+  generateExistingOnPolicyUpdate: {{ .Values.generateExistingOnPolicyUpdate }}
+  rules:
+    - name: generate-resource-quota
+      match:
+        any:
+          - resources:
+              kinds:
+                - Namespace
+      {{- with index .Values "policyExclude" $name }}
+      exclude:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      generate:
+        apiVersion: v1
+        kind: ResourceQuota
+        name: default-resourcequota
+        {{- with index .Values "generateSynchronizeByPolicy" $name }}
+        synchronize: {{ toYaml . }}
+        {{- else }}
+        synchronize: {{ .Values.generateSynchronize }}
+        {{- end }}
+        namespace: "{{`{{request.object.metadata.name}}`}}"
+        data:
+          {{- with index .Values "policyOverrides" $name }}
+          spec:
+            {{ if .resourceQuota }}
+            {{- toYaml .resourceQuota | nindent 12 }}
+            {{- else }}
+            hard:
+              requests.cpu: "4"
+              requests.memory: "16Gi"
+              limits.cpu: "4"
+              limits.memory: "16Gi"
+            {{- end }}
+          {{- else }}
+          spec:
+            hard:
+              requests.cpu: "4"
+              requests.memory: "16Gi"
+              limits.cpu: "4"
+              limits.memory: "16Gi"
+          {{- end }}
+    - name: generate-limit-range
+      match:
+        any:
+          - resources:
+              kinds:
+                - Namespace
+      {{- with index .Values "policyExclude" $name }}
+      exclude:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      generate:
+        apiVersion: v1
+        kind: LimitRange
+        name: default-limitrange
+        {{- with index .Values "generateSynchronizeByPolicy" $name }}
+        synchronize: {{ toYaml . }}
+        {{- else }}
+        synchronize: {{ .Values.generateSynchronize }}
+        {{- end }}
+        namespace: "{{`{{request.object.metadata.name}}`}}"
+        data:
+          {{- with index .Values "policyOverrides" $name }}
+          spec:
+            {{ if .limitRange }}
+            {{- toYaml .limitRange | nindent 12 }}
+            {{- else }}
+            limits:
+              - default:
+                  cpu: "500m"
+                  memory: "512Mi"
+                defaultRequest:
+                  cpu: "100m"
+                  memory: "256Mi"
+                type: Container
+            {{- end }}
+          {{- else }}
+          spec:
+            limits:
+              - default:
+                  cpu: "500m"
+                  memory: "512Mi"
+                defaultRequest:
+                  cpu: "100m"
+                  memory: "256Mi"
+                type: Container
+          {{- end }}
+{{- end }}

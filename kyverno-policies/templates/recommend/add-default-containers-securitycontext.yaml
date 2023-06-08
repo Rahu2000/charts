@@ -1,0 +1,54 @@
+{{- $name := "add-default-containers-securitycontext" }}
+{{- if eq (include "kyverno-additional-policies.podSecurityRecommend" (merge (dict "name" $name) .)) "true" }}
+{{- include "kyverno-additional-policies.supportedKyvernoCheck" (dict "top" . "ver" ">= 1.6.0-0") }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ $name }}
+  annotations:
+    {{- with .Values.autogenControllers }}
+    pod-policies.kyverno.io/autogen-controllers: {{ . }}
+    {{- end }}
+    policies.kyverno.io/title: Add Default securityContext
+    policies.kyverno.io/category: Recommend
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/minversion: 1.6.0
+    policies.kyverno.io/description: >-
+      A Container securityContext entry defines fields such as the privileges and capabilities which should be used to run the Container.
+      Sometimes choosing default values for users rather than blocking is a better alternative to not impede
+      such Pod definitions. This policy will mutate a Pod to set `privileged`, `capabilities`, `allowPrivilegeEscalation`, and
+      `readOnlyRootFilesystem` fields within the container securityContext that they are not already set.
+  labels: {{ include "kyverno-additional-policies.labels" . | nindent 4 }}
+spec:
+  rules:
+    - name: add-default-container-securitycontext
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      {{- with index .Values "policyExclude" $name }}
+      exclude:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with index .Values "policyPreconditions" $name }}
+      preconditions:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      mutate:
+        foreach:
+          - list: "request.object.spec.[initContainers, ephemeralContainers, containers][]"
+            patchStrategicMerge:
+              spec:
+                containers:
+                  - +(securityContext):
+                      +(capabilities):
+                        +(drop): [ALL]
+                      {{- with index .Values "policyOverrides" $name }}
+                      {{- toYaml . | nindent 22 }}
+                      {{- else }}
+                      +(privileged): false
+                      +(allowPrivilegeEscalation): false
+                      +(readOnlyRootFilesystem): true
+                      {{- end }}
+{{- end }}

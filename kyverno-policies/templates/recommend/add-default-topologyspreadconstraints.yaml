@@ -1,0 +1,73 @@
+{{- $name := "add-default-topologyspreadconstraints" }}
+{{- if eq (include "kyverno-additional-policies.podSecurityRecommend" (merge (dict "name" $name) .)) "true" }}
+{{- include "kyverno-additional-policies.supportedKyvernoCheck" (dict "top" . "ver" ">= 1.6.0-0") }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ $name }}
+  annotations:
+    {{- with .Values.autogenControllers }}
+    pod-policies.kyverno.io/autogen-controllers: {{ . }}
+    {{- end }}
+    policies.kyverno.io/title: Spread Pods Across Nodes and Zones
+    policies.kyverno.io/category: Recommend
+    policies.kyverno.io/subject: Deployment, Pod
+    policies.kyverno.io/minversion: 1.6.0
+    policies.kyverno.io/description: >-
+      Deployments to a Kubernetes cluster with multiple availability zones often need to
+      distribute those replicas to align with those zones to ensure site-level failures
+      do not impact availability. This policy matches Deployments with the label
+      `distributed=required` and mutates them to spread Pods across zones.
+  labels: {{ include "kyverno-additional-policies.labels" . | nindent 4 }}
+spec:
+  rules:
+    - name: spread-pods-across-zone-and-nodes
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+      {{- with index .Values "policyExclude" $name }}
+      exclude:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with index .Values "policyPreconditions" $name }}
+      preconditions:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      mutate:
+        patchStrategicMerge:
+          spec:
+            template:
+              {{- with index .Values "policyOverrides" $name }}
+              spec:
+                {{- if .spec }}
+                {{- toYaml .spec | nindent 16 }}
+                {{- else }}
+                +(topologySpreadConstraints):
+                  - topologyKey: topology.kubernetes.io/zone
+                    whenUnsatisfiable: DoNotSchedule
+                    labelSelector:
+                      matchLabels: "{{`{{request.object.metadata.labels}}`}}"
+                    maxSkew: 4
+                  - topologyKey: kubernetes.io/hostname
+                    whenUnsatisfiable: DoNotSchedule
+                    labelSelector:
+                      matchLabels: "{{`{{request.object.metadata.labels}}`}}"
+                    maxSkew: 1
+                {{- end }}
+              {{- else }}
+              spec:
+                +(topologySpreadConstraints):
+                  - topologyKey: topology.kubernetes.io/zone
+                    whenUnsatisfiable: DoNotSchedule
+                    labelSelector:
+                      matchLabels: "{{`{{request.object.metadata.labels}}`}}"
+                    maxSkew: 4
+                  - topologyKey: kubernetes.io/hostname
+                    whenUnsatisfiable: DoNotSchedule
+                    labelSelector:
+                      matchLabels: "{{`{{request.object.metadata.labels}}`}}"
+                    maxSkew: 1
+              {{- end }}
+{{- end }}

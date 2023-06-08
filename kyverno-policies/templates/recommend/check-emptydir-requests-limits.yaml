@@ -1,0 +1,90 @@
+{{- $name := "check-emptydir-requests-limits" }}
+{{- if eq (include "kyverno-additional-policies.podSecurityRecommend" (merge (dict "name" $name) .)) "true" }}
+{{- include "kyverno-additional-policies.supportedKyvernoCheck" (dict "top" . "ver" ">= 1.6.0-0") }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ $name }}
+  annotations:
+    {{- with .Values.autogenControllers }}
+    pod-policies.kyverno.io/autogen-controllers: {{ . }}
+    {{- end }}
+    policies.kyverno.io/title: Require Requests and Limits for emptyDir
+    policies.kyverno.io/category: Recommend
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/minversion: 1.6.0
+    kyverno.io/kyverno-version: 1.7.0
+    kyverno.io/kubernetes-version: "1.23"
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Pods which mount emptyDir volumes may be allowed to potentially overrun
+      the medium backing the emptyDir volume. This sample ensures that any
+      initContainers or containers mounting an emptyDir volume have
+      ephemeral-storage requests and limits set. Policy will be skipped if
+      the volume has already a sizeLimit set.
+  labels: {{ include "kyverno-additional-policies.labels" . | nindent 4 }}
+spec:
+  {{- with index .Values "validationFailureActionByPolicy" $name }}
+  validationFailureAction: {{ toYaml . }}
+  {{- else }}
+  validationFailureAction: {{ .Values.validationFailureAction }}
+  {{- end }}
+  {{- with concat (index .Values "validationFailureActionOverrides" "all") (default list (index .Values "validationFailureActionOverrides" $name)) }}
+  validationFailureActionOverrides: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  failurePolicy: {{ .Values.failurePolicy }}
+  background: false
+  rules:
+    - name: check-emptydir-requests-limits
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      {{- with index .Values "policyExclude" $name }}
+      exclude:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with index .Values "policyPreconditions" $name }}
+      preconditions:
+        {{- if .all }}
+        all:
+          - key: "{{`{{request.operation || 'BACKGROUND'}}`}}"
+            operator: AnyIn
+            value:
+              - CREATE
+              - UPDATE
+          - key: "{{`{{ request.object.spec.volumes[?contains(keys(@), 'emptyDir')] }}`}}"
+            operator: GreaterThanOrEquals
+            value: 1
+        {{- toYaml .all | nindent 8 }}
+        {{- else }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- else }}
+      preconditions:
+        all:
+          - key: "{{`{{request.operation || 'BACKGROUND'}}`}}"
+            operator: AnyIn
+            value:
+              - CREATE
+              - UPDATE
+          - key: "{{`{{ request.object.spec.volumes[?contains(keys(@), 'emptyDir')] }}`}}"
+            operator: GreaterThanOrEquals
+            value: 1
+      {{- end }}
+      validate:
+        message: Containers mounting emptyDir volumes must specify requests and limits for ephemeral-storage.
+        foreach:
+          - list: "request.object.spec.volumes[?contains(keys(@), 'emptyDir') && !contains(keys(emptyDir), 'sizeLimit')]"
+            elementScope: false
+            deny:
+              conditions:
+                any:
+                  - key: "{{`{{request.object.spec.[initContainers, containers][].volumeMounts[?name == '{{ element.name }}' ][].name | length(@) }}`}}"
+                    operator: NotEquals
+                    value: "{{`{{request.object.spec.[initContainers, containers[?volumeMounts[?name == '{{ element.name }}' ]]][].resources.requests.\"ephemeral-storage\" | length(@) }}`}}"
+                  - key: "{{`{{request.object.spec.[initContainers, containers][].volumeMounts[?name == '{{ element.name }}' ][].name | length(@) }}`}}"
+                    operator: NotEquals
+                    value: "{{`{{request.object.spec.[initContainers, containers[?volumeMounts[?name == '{{ element.name }}' ]]][].resources.limits.\"ephemeral-storage\" | length(@) }}`}}"
+{{- end }}

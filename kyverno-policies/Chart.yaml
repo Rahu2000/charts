@@ -1,0 +1,28 @@
+apiVersion: v2
+type: application
+name: kyverno-policies
+version: v0.1.0
+appVersion: v1.10.3
+icon: https://github.com/kyverno/kyverno/raw/main/img/logo.png
+description: Custom Kubernetes Pod Security implemented as Kyverno policies
+keywords:
+  - kubernetes
+  - rahu2000
+  - policy agent
+  - validating webhook
+  - admissions controller
+home: https://kyverno.io/policies/
+sources:
+  - https://github.com/kyverno/policies
+maintainers:
+  - name: rahu2000
+    email: rahu2000@naver.com
+    url: https://github.com/psa-terraform/
+kubeVersion: '>=1.16.0-0'
+annotations:
+  artifacthub.io/operator: 'false'
+  artifacthub.io/prerelease: 'false'
+  # valid kinds are: added, changed, deprecated, removed, fixed and security
+  artifacthub.io/changes: |
+    - kind: added
+      description: Add additional policies and properties

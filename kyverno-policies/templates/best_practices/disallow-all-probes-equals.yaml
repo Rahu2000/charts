@@ -1,0 +1,56 @@
+{{- $name := "disallow-all-probes-equals" }}
+{{- if eq (include "kyverno-additional-policies.podSecurityBestPractices" (merge (dict "name" $name) .)) "true" }}
+{{- include "kyverno-additional-policies.supportedKyvernoCheck" (dict "top" . "ver" ">= 1.6.0-0") }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ $name }}
+  annotations:
+    pod-policies.kyverno.io/autogen-controllers: none
+    policies.kyverno.io/title: Validate Probes
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/minversion: 1.6.0
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Liveness and readiness probes accomplish different goals, and setting both to the same
+      is an anti-pattern and often results in app problems in the future. This policy
+      checks that liveness and readiness probes are not equal.
+  labels: {{ include "kyverno-additional-policies.labels" . | nindent 4 }}
+spec:
+  {{- with index .Values "validationFailureActionByPolicy" $name }}
+  validationFailureAction: {{ toYaml . }}
+  {{- else }}
+  validationFailureAction: {{ .Values.validationFailureAction }}
+  {{- end }}
+  {{- with concat (index .Values "validationFailureActionOverrides" "all") (default list (index .Values "validationFailureActionOverrides" $name)) }}
+  validationFailureActionOverrides: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  background: false
+  failurePolicy: {{ .Values.failurePolicy }}
+  rules:
+    - name: validate-probes
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - DaemonSet
+                - StatefulSet
+      {{- with index .Values "policyExclude" $name }}
+      exclude:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with index .Values "policyPreconditions" $name }}
+      preconditions:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      validate:
+        message: "Liveness and readiness probes cannot be the same."
+        deny:
+          conditions:
+            any:
+              - key: "{{`{{ request.object.spec.template.spec.containers[?readinessProbe==livenessProbe] | length(@) }}`}}"
+                operator: GreaterThan
+                value: "0"
+{{- end }}

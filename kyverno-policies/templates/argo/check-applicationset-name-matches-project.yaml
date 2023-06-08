@@ -1,0 +1,57 @@
+{{- $name := "check-applicationset-name-matches-project" }}
+{{- if eq (include "kyverno-additional-policies.podSecurityOnArgo" (merge (dict "name" $name) .)) "true" }}
+{{- include "kyverno-additional-policies.supportedKyvernoCheck" (dict "top" . "ver" ">= 1.6.0-0") }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ $name }}
+  annotations:
+    {{- with .Values.autogenControllers }}
+    pod-policies.kyverno.io/autogen-controllers: {{ . }}
+    {{- end }}
+    policies.kyverno.io/title: Ensure ApplicationSet Name Matches Project
+    policies.kyverno.io/category: Argo
+    policies.kyverno.io/severity: medium
+    kyverno.io/kyverno-version: 1.6.2
+    policies.kyverno.io/minversion: 1.6.0
+    kyverno.io/kubernetes-version: "1.23"
+    policies.kyverno.io/subject: ApplicationSet
+    policies.kyverno.io/description: >-
+      This policy ensures that the name of the ApplicationSet is the
+      same value provided in the project.
+  labels: {{ include "kyverno-additional-policies.labels" . | nindent 4 }}
+spec:
+  {{- with index .Values "validationFailureActionByPolicy" $name }}
+  validationFailureAction: {{ toYaml . }}
+  {{- else }}
+  validationFailureAction: {{ .Values.validationFailureAction }}
+  {{- end }}
+  {{- with concat (index .Values "validationFailureActionOverrides" "all") (default list (index .Values "validationFailureActionOverrides" $name)) }}
+  validationFailureActionOverrides: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  background: {{ .Values.background }}
+  failurePolicy: {{ .Values.failurePolicy }}
+  rules:
+    - name: validate-match-name
+      match:
+        any:
+          - resources:
+              kinds:
+                - ApplicationSet
+      {{- with index .Values "policyExclude" $name }}
+      exclude:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      preconditions:
+        all:
+          - key: "{{`{{ request.operation || 'BACKGROUND' }}`}}"
+            operator: NotEquals
+            value: DELETE
+      validate:
+        message: "The name must match the project."
+        pattern:
+          spec:
+            template:
+              spec:
+                project: "{{`{{request.object.metadata.name}}`}}"
+{{- end }}

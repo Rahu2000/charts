@@ -1,0 +1,44 @@
+{{- $name := "disallow-delete-kyverno" }}
+{{- if eq (include "kyverno-additional-policies.podSecurityBestPractices" (merge (dict "name" $name) .)) "true" }}
+{{- include "kyverno-additional-policies.supportedKyvernoCheck" (dict "top" . "ver" ">= 1.6.0-0") }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: {{ $name }}
+  annotations:
+    pod-policies.kyverno.io/autogen-controllers: none
+    policies.kyverno.io/title: Disallow Delete Kyverno Resources
+    policies.kyverno.io/minversion: 1.6.0
+    policies.kyverno.io/category: Best practiecs
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+  labels: {{ include "kyverno-additional-policies.labels" . | nindent 4 }}
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: disallow-deletes-kyverno-resources
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - Service
+                - CronJob
+                - CustomResourceDefinition
+              selector:
+                matchLabels:
+                  app.kubernetes.io/managed-by: kyverno
+      exclude:
+        any:
+          - clusterRoles:
+              - cluster-admin
+      validate:
+        message: "Deleting {{`{{request.oldObject.kind}}`}}/{{`{{request.oldObject.metadata.name}}`}} is not allowed"
+        deny:
+          conditions:
+            any:
+              - key: "{{`{{request.operation}}`}}"
+                operator: Equals
+                value: DELETE
+{{- end }}
