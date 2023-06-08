@@ -1,7 +1,7 @@
 apiVersion: v2
 type: application
 name: kyverno-policies
-version: v0.1.0
+version: v0.1.1
 appVersion: v1.10.3
 icon: https://github.com/kyverno/kyverno/raw/main/img/logo.png
 description: Custom Kubernetes Pod Security implemented as Kyverno policies
@@ -17,7 +17,7 @@ sources:
 maintainers:
   - name: rahu2000
     email: rahu2000@naver.com
-    url: https://github.com/psa-terraform/
+    url: https://github.com/Rahu2000
 kubeVersion: '>=1.16.0-0'
 annotations:
   artifacthub.io/operator: 'false'
