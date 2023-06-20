@@ -10,7 +10,7 @@ metadata:
     pod-policies.kyverno.io/autogen-controllers: {{ . }}
     {{- end }}
     policies.kyverno.io/title: Disable Service Discovery
-    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/category: Recommend
     policies.kyverno.io/subject: Pod
     kyverno.io/kyverno-version: 1.8.0-rc2
     kyverno.io/kubernetes-version: "1.24"

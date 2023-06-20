@@ -14,7 +14,6 @@ The following policies are included in each profile.
 
 * check-deprecated-apis
 * disable-automount-serviceaccount-token
-* disable-service-discovery
 * disallow-all-probes-equals
 * disallow-container-sock-mounts
 * disallow-default-namespace
@@ -39,6 +38,7 @@ The following policies are included in each profile.
 * check-require-pod-probes
 * check-required-labels
 * check-vulnerable-kernel
+* disable-service-discovery
 
 **AWS**
 

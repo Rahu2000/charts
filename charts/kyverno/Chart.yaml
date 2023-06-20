@@ -1,7 +1,7 @@
 apiVersion: v2
 type: application
 name: kyverno
-version: v0.1.1
+version: v0.1.2
 appVersion: v1.10.3
 icon: https://github.com/kyverno/kyverno/raw/main/img/logo.png
 description: Custom Kubernetes Pod Security implemented as Kyverno policies
