@@ -1,0 +1,36 @@
+global:
+  repoUrl:
+
+applications:
+  awsLoadBalancerController:
+    install: true
+  # awsEfsCsiDriver:
+  #   install: false
+  # certManager:
+  #   install: false
+  # clusterAutoscaler:
+  #   install: false
+  # externalDns:
+  #   install: false
+  # grafana:
+  #   install: false
+  # istio:
+  #   install: false
+  # jaeger:
+  #   install: false
+  # karpenter:
+  #   install: false
+  # kubePrometheusStack:
+  #   install: false
+  # loki:
+  #   install: false
+  # metrics-server:
+  #   install: false
+  # nginx-ingress:
+  #   install: false
+  # prometheusNodeExporter:
+  #   install: false
+  # opentelemetryOperator:
+  #   install: false
+  # velero:
+  #   install: false
