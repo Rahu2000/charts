@@ -1,0 +1,68 @@
+
+{{- $name := "metrics-server" }}
+{{- if .Values.applications.metricsServer.install }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  {{- with .Values.applications.metricsServer.additionalAnnotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.applications.metricsServer.additionalLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ $name }}
+  namespace: {{ .Values.global.argocd.namespace | default "argocd" | quote}}
+  {{- include "finalizers" . | nindent 2 }}
+spec:
+  project: {{ .Values.applications.metricsServer.project | default "default" | quote }}
+  {{- if .Values.applications.metricsServer.sources }}
+  {{- with .Values.applications.metricsServer.sources }}
+  sources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{ else }}
+  source:
+    {{- include "metricsServer.source" . | nindent 4 }}
+    {{- if .Values.applications.metricsServer.source }}
+    {{- with .Values.applications.metricsServer.source.helm }}
+    helm:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  destination:
+    {{- include "destination.server" . | nindent 4 }}
+    namespace: {{ .Values.applications.metricsServer.namespace | default "default" | quote }}
+  {{- if .Values.applications.metricsServer.syncPolicy }}
+  {{- with .Values.applications.metricsServer.syncPolicy }}
+  syncPolicy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- else }}
+  syncPolicy:
+  {{- include "default.syncPolicy.automated" . | nindent 4 }}
+  {{- include "default.syncPolicy.syncOptions" . | nindent 4 }}
+  {{- if .Values.applications.metricsServer.serverSideApply }}
+      - ServerSide=true
+  {{- end }}
+  {{- if .Values.applications.metricsServer.ignoreDifferences }}
+      - RespectIgnoreDifferences=true
+  {{- end }}
+  {{- include "default.syncPolicy.retry" . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.applications.metricsServer.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ . }}
+  {{- end }}
+  {{- with .Values.applications.metricsServer.ignoreDifferences }}
+  ignoreDifferences:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.applications.metricsServer.info }}
+  info:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

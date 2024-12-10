@@ -3,7 +3,7 @@ name: argo-gitops
 description: A Helm chart for managing additional Argo CD Applications and Projects
 type: application
 version: v0.1.0
-home: https://github.com/argoproj/argo-helm
+home: https://github.com/Rahu2000/charts
 icon: https://argo-cd.readthedocs.io/en/stable/assets/logo.png
 keywords:
   - argoproj

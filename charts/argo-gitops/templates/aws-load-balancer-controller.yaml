@@ -14,7 +14,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   name: {{ $name }}
-  namespace: {{ .Values.applications.awsLoadBalancerController.namespace | default "kube-system" | quote}}
+  namespace: {{ .Values.global.argocd.namespace | default "argocd" | quote}}
   {{- include "finalizers" . | nindent 2 }}
 spec:
   project: {{ .Values.applications.awsLoadBalancerController.project | default "default" | quote }}
@@ -26,11 +26,32 @@ spec:
   {{ else }}
   source:
     {{- include "awsLoadBalancerController.source" . | nindent 4 }}
+    {{- if .Values.applications.awsLoadBalancerController.source }}
+    {{- with .Values.applications.awsLoadBalancerController.source.helm }}
+    helm:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
   {{- end }}
-  {{- include "destination" . | nindent 2 }}
+  destination:
+    {{- include "destination.server" . | nindent 4 }}
+    namespace: {{ .Values.applications.awsLoadBalancerController.namespace | default "default" | quote }}
+  {{- if .Values.applications.awsLoadBalancerController.syncPolicy }}
   {{- with .Values.applications.awsLoadBalancerController.syncPolicy }}
   syncPolicy:
     {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- else }}
+  syncPolicy:
+  {{- include "default.syncPolicy.automated" . | nindent 4 }}
+  {{- include "default.syncPolicy.syncOptions" . | nindent 4 }}
+  {{- if .Values.applications.awsLoadBalancerController.serverSideApply }}
+      - ServerSide=true
+  {{- end }}
+  {{- if .Values.applications.awsLoadBalancerController.ignoreDifferences }}
+      - RespectIgnoreDifferences=true
+  {{- end }}
+  {{- include "default.syncPolicy.retry" . | nindent 4 }}
   {{- end }}
   {{- with .Values.applications.awsLoadBalancerController.revisionHistoryLimit }}
   revisionHistoryLimit: {{ . }}
