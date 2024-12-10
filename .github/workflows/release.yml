@@ -8,6 +8,7 @@ on:
       - 'charts/**'
 env:
   HELM_DOCS_VERSION: '1.11.0'
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   release:
