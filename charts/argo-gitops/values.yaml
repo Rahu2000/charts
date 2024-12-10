@@ -1,0 +1,84 @@
+global:
+  argocd:
+    namespace: argocd
+  repoUrl: "" # when configure 'sources' in applications, this is ignored
+
+applications:
+  awsLoadBalancerController:
+    install: true
+    namespace: kube-system
+
+    ## additionalAnnotations
+    # additionalAnnotations:
+    #   argocd.argoproj.io/sync-options: Prune=false
+
+    ## single source
+    # source:
+    #   repoURL: https://your.helm.repo/charts
+    #   chart: aws-load-balancer-controller
+    #   targetRevision: HEAD
+    #   ## Override the values of the chart with a file
+    #   helm:
+    #     valueFiles:
+    #       - path/to/values.yaml
+
+    #   ## Override the values of the chart with a string
+    #   # helm:
+    #   #   values: |
+    #   #     podAnnotations:
+    #   #       cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    #   #     clusterName: eks-cluster
+    #   #     vpcId: vpc-xxxxxxxx
+    #   #     serviceAccount:
+    #   #       create: true
+    #   #       name: aws-load-balancer-controller
+    #   #       annotations:
+    #   #         eks.amazonaws.com/role-arn: arn:aws:iam::xxxxxxx:role/aws-load-balancer-controller-role
+
+    ## multiple sources
+    ## Argocd version over 2.6.0
+    # sources:
+    #   - repoURL: https://aws.github.io/eks-charts
+    #     chart: aws-load-balancer-controller
+    #     targetRevision: HEAD
+    #     helm:
+    #       valueFiles:
+    #         - $values/values.yaml
+    #   - repoURL: https://your.values.repo.git
+    #     targetRevision: main
+    #     path: values/aws-load-balancer-controller
+    #     ref: values
+
+    ## syncPolicy
+    # syncPolicy:
+    #   automated: {}
+
+    # syncOptions
+    # serverSideApply: true # when configure 'syncPolicy', this is ignored
+
+    ## ignoreDifferences
+    # ignoreDifferences:
+    #   - group: "apps"
+    #     kind: "Deployment"
+    #     jsonPointers:
+    #       - /spec/replicas
+
+  awsEfsCsiDriver:
+    install: false
+    namespace: kube-system
+
+  certManager:
+    install: false
+    namespace: cert-manager
+
+  clusterAutoscaler:
+    install: false
+    namespace: kube-system
+
+  externalDns:
+    install: false
+    namespace: kube-system
+
+  metricsServer:
+    install: false
+    namespace: kube-system

@@ -1,0 +1,68 @@
+
+{{- $name := "aws-efs-csi-driver" }}
+{{- if .Values.applications.awsEfsCsiDriver.install }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  {{- with .Values.applications.awsEfsCsiDriver.additionalAnnotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.applications.awsEfsCsiDriver.additionalLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ $name }}
+  namespace: {{ .Values.global.argocd.namespace | default "argocd" | quote}}
+  {{- include "finalizers" . | nindent 2 }}
+spec:
+  project: {{ .Values.applications.awsEfsCsiDriver.project | default "default" | quote }}
+  {{- if .Values.applications.awsEfsCsiDriver.sources }}
+  {{- with .Values.applications.awsEfsCsiDriver.sources }}
+  sources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{ else }}
+  source:
+    {{- include "awsEfsCsiDriver.source" . | nindent 4 }}
+    {{- if .Values.applications.awsEfsCsiDriver.source }}
+    {{- with .Values.applications.awsEfsCsiDriver.source.helm }}
+    helm:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  destination:
+    {{- include "destination.server" . | nindent 4 }}
+    namespace: {{ .Values.applications.awsEfsCsiDriver.namespace | default "default" | quote }}
+  {{- if .Values.applications.awsEfsCsiDriver.syncPolicy }}
+  {{- with .Values.applications.awsEfsCsiDriver.syncPolicy }}
+  syncPolicy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- else }}
+  syncPolicy:
+  {{- include "default.syncPolicy.automated" . | nindent 4 }}
+  {{- include "default.syncPolicy.syncOptions" . | nindent 4 }}
+  {{- if .Values.applications.awsEfsCsiDriver.serverSideApply }}
+      - ServerSide=true
+  {{- end }}
+  {{- if .Values.applications.awsEfsCsiDriver.ignoreDifferences }}
+      - RespectIgnoreDifferences=true
+  {{- end }}
+  {{- include "default.syncPolicy.retry" . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.applications.awsEfsCsiDriver.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ . }}
+  {{- end }}
+  {{- with .Values.applications.awsEfsCsiDriver.ignoreDifferences }}
+  ignoreDifferences:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.applications.awsEfsCsiDriver.info }}
+  info:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

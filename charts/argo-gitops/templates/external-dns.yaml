@@ -1,0 +1,68 @@
+
+{{- $name := "external-dns" }}
+{{- if .Values.applications.externalDns.install }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  {{- with .Values.applications.externalDns.additionalAnnotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.applications.externalDns.additionalLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ $name }}
+  namespace: {{ .Values.global.argocd.namespace | default "argocd" | quote}}
+  {{- include "finalizers" . | nindent 2 }}
+spec:
+  project: {{ .Values.applications.externalDns.project | default "default" | quote }}
+  {{- if .Values.applications.externalDns.sources }}
+  {{- with .Values.applications.externalDns.sources }}
+  sources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{ else }}
+  source:
+    {{- include "externalDns.source" . | nindent 4 }}
+    {{- if .Values.applications.externalDns.source }}
+    {{- with .Values.applications.externalDns.source.helm }}
+    helm:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  destination:
+    {{- include "destination.server" . | nindent 4 }}
+    namespace: {{ .Values.applications.externalDns.namespace | default "default" | quote }}
+  {{- if .Values.applications.externalDns.syncPolicy }}
+  {{- with .Values.applications.externalDns.syncPolicy }}
+  syncPolicy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- else }}
+  syncPolicy:
+  {{- include "default.syncPolicy.automated" . | nindent 4 }}
+  {{- include "default.syncPolicy.syncOptions" . | nindent 4 }}
+  {{- if .Values.applications.externalDns.serverSideApply }}
+      - ServerSide=true
+  {{- end }}
+  {{- if .Values.applications.externalDns.ignoreDifferences }}
+      - RespectIgnoreDifferences=true
+  {{- end }}
+  {{- include "default.syncPolicy.retry" . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.applications.externalDns.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ . }}
+  {{- end }}
+  {{- with .Values.applications.externalDns.ignoreDifferences }}
+  ignoreDifferences:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.applications.externalDns.info }}
+  info:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

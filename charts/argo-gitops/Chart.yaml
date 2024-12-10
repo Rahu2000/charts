@@ -1,0 +1,22 @@
+apiVersion: v2
+name: argo-gitops
+description: A Helm chart for managing additional Argo CD Applications and Projects
+type: application
+version: v0.1.0
+home: https://github.com/Rahu2000/charts
+icon: https://argo-cd.readthedocs.io/en/stable/assets/logo.png
+keywords:
+  - argoproj
+  - argocd
+  - gitops
+maintainers:
+  - name: rahu2000
+    email: rahu2000@naver.com
+    url: https://github.com/Rahu2000
+annotations:
+  artifacthub.io/operator: "false"
+  artifacthub.io/prerelease: "false"
+  # valid kinds are: added, changed, deprecated, removed, fixed and security
+  artifacthub.io/changes: |
+    - kind: added
+      description: Inital version of the chart

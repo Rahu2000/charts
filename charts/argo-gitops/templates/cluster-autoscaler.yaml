@@ -1,0 +1,68 @@
+
+{{- $name := "cluster-autosclaer" }}
+{{- if .Values.applications.clusterAutoscaler.install }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  {{- with .Values.applications.clusterAutoscaler.additionalAnnotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.applications.clusterAutoscaler.additionalLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ $name }}
+  namespace: {{ .Values.global.argocd.namespace | default "argocd" | quote}}
+  {{- include "finalizers" . | nindent 2 }}
+spec:
+  project: {{ .Values.applications.clusterAutoscaler.project | default "default" | quote }}
+  {{- if .Values.applications.clusterAutoscaler.sources }}
+  {{- with .Values.applications.clusterAutoscaler.sources }}
+  sources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{ else }}
+  source:
+    {{- include "clusterAutoscaler.source" . | nindent 4 }}
+    {{- if .Values.applications.clusterAutoscaler.source }}
+    {{- with .Values.applications.clusterAutoscaler.source.helm }}
+    helm:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  destination:
+    {{- include "destination.server" . | nindent 4 }}
+    namespace: {{ .Values.applications.clusterAutoscaler.namespace | default "default" | quote }}
+  {{- if .Values.applications.clusterAutoscaler.syncPolicy }}
+  {{- with .Values.applications.clusterAutoscaler.syncPolicy }}
+  syncPolicy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- else }}
+  syncPolicy:
+  {{- include "default.syncPolicy.automated" . | nindent 4 }}
+  {{- include "default.syncPolicy.syncOptions" . | nindent 4 }}
+  {{- if .Values.applications.clusterAutoscaler.serverSideApply }}
+      - ServerSide=true
+  {{- end }}
+  {{- if .Values.applications.clusterAutoscaler.ignoreDifferences }}
+      - RespectIgnoreDifferences=true
+  {{- end }}
+  {{- include "default.syncPolicy.retry" . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.applications.clusterAutoscaler.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ . }}
+  {{- end }}
+  {{- with .Values.applications.clusterAutoscaler.ignoreDifferences }}
+  ignoreDifferences:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.applications.clusterAutoscaler.info }}
+  info:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
