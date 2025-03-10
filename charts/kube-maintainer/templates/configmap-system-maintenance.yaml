@@ -1,0 +1,69 @@
+{{- $configMaps := .Values.configMaps -}}
+{{- range $configMap := $configMaps }}
+{{- if and $configMap.enabled (eq $configMap.name "system-maintenance") }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kube-maintainer.name" $ }}-{{ $configMap.name }}-config
+  namespace: {{ include "kube-maintainer.namespace" $ }}
+data:
+{{- if $configMap.data.services }}
+{{- range $service := $configMap.data.services }}
+  {{ $service }}.yaml: |
+    apiVersion: networking.istio.io/v1alpha3
+    kind: EnvoyFilter
+    metadata:
+      name: {{ $service }}-lua-filter
+      namespace: backend
+    spec:
+      workloadSelector:
+        labels:
+          app: {{ $service }}
+      configPatches:
+        - applyTo: HTTP_FILTER
+          match:
+            context: SIDECAR_INBOUND
+            listener:
+              filterChain:
+                filter:
+                  name: envoy.filters.network.http_connection_manager
+                  subFilter:
+                    name: envoy.filters.http.router
+          patch:
+            operation: INSERT_BEFORE
+            value:
+              name: envoy.filters.http.lua
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                inline_code: |
+                  function envoy_on_request(request_handle)
+                    local authority = request_handle:headers():get(":authority") or "no-authority"
+
+                    -- 여기서 원하는 호스트에 대해서만 체크
+                    if authority == "{{ $configMap.data.host }}" then
+                      -- 이 요청이 타겟 호스트임을 표시하는 헤더 추가
+                      request_handle:streamInfo():dynamicMetadata():set("envoy.filters.http.lua", "x-filter-target-host", "true")
+                    end
+                  end
+
+                  function envoy_on_response(response_handle)
+                    -- 타겟 호스트 체크
+                    local is_target = response_handle:streamInfo():dynamicMetadata():get("envoy.filters.http.lua")["x-filter-target-host"]
+                    local status = response_handle:headers():get(":status") or "no-status"
+
+                    if is_target == "true" then
+                      -- 타겟 호스트에 대해서만 응답 수정
+                      response_handle:headers():replace(":status", "401")
+                      response_handle:headers():replace("content-type", "application/json")
+
+                      local error_body = {{ $configMap.data.responseBody | quote }}
+                      response_handle:body():setBytes(error_body)
+                    end
+                  end
+
+{{- end }}
+{{- else }}
+  {}
+{{- end }}
+{{- end }}
+{{- end }}

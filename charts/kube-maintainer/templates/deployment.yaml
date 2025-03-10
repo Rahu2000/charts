@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kube-maintainer.name" . }}
+  namespace: {{ include "kube-maintainer.namespace" . }}
+spec:
+  replicas: {{ .Values.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "kube-maintainer.name" . }}
+  template:
+    metadata:
+      annotations:
+        {{- range $configMap := .Values.configMaps }}
+        {{- if $configMap.enabled }}
+        checksum/{{ include "kube-maintainer.name" $ }}-{{ $configMap.name }}-config: {{ toYaml $configMap | sha256sum }}
+        {{- end }}
+        {{- end }}
+      labels:
+{{ include "kube-maintainer.labels" . | indent 8 }}
+    spec:
+      serviceAccountName: {{ include "kube-maintainer.serviceAccountName" . }}
+      containers:
+        - name: kube-maintainer
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - containerPort: 5000
+          env:
+            - name: SLEEP_TIME
+              value: "60" # 주기
+        {{- if .Values.extraEnv }}
+          {{- range .Values.extraEnv }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.configMaps }}
+          volumeMounts:
+          {{- range .Values.configMaps }}
+            - name: {{ .name }}-config
+              mountPath: /config/{{ .name }}
+          {{- end }}
+        {{- end }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          livenessProbe:
+{{ toYaml .Values.livenessProbe | indent 12 }}
+          readinessProbe:
+{{ toYaml .Values.readinessProbe | indent 12 }}
+    {{- if .Values.configMaps }}
+      volumes:
+      {{- range .Values.configMaps }}
+        - name: {{ .name }}-config
+          configMap:
+            name: {{ include "kube-maintainer.name" $ }}-{{ .name }}-config
+      {{- end }}
+    {{- end }}

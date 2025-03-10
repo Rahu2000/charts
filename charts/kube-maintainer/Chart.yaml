@@ -1,0 +1,29 @@
+apiVersion: v2
+name: kube-maintainer
+description: A Helm chart for maintaining Kubernetes resources
+type: application
+version: "0.1.0"
+appVersion: "1.0.0" # 애플리케이션의 버전을 명시합니다.
+home: https://github.com/Rahu2000/charts
+icon: https://argo-cd.readthedocs.io/en/stable/assets/logo.png
+keywords:
+  - gitops
+  - kube-maintainer
+maintainers:
+  - name: rahu2000
+    email: rahu2000@naver.com
+    url: https://github.com/Rahu2000
+annotations:
+  artifacthub.io/operator: "false"
+  artifacthub.io/prerelease: "false"
+  # valid kinds are: added, changed, deprecated, removed, fixed and security
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial version of the chart
+  artifacthub.io/displayName: "Kube Maintainer"
+  artifacthub.io/keywords: |
+    - gitops
+    - kube-maintainer
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/source: https://github.com/Rahu2000/charts
+  artifacthub.io/documentation: https://github.com/Rahu2000/charts/blob/main/README.md

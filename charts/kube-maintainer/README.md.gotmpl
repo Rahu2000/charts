@@ -1,0 +1,57 @@
+{{ template "chart.header" . }}
+{{ template "chart.deprecationWarning" . }}
+{{ template "chart.description" . }}
+{{ template "chart.badgesSection" . }}
+
+## About
+
+This chart is a maintainer for Kubernetes
+
+```console
+## Add Helm repo
+helm repo add k8s-utils https://rahu2000.github.io/charts/
+
+## Install the kube-maintainer Helm chart
+helm install kube-maintainer k8s-utils/kube-maintainer --namespace kube-maintainer
+```
+
+## How to K8s Resources Deploy
+
+### Deploy
+```
+curl -X POST https://localhost:5000/maintainer/plugin/deploy \
+     -H "Content-Type: application/json" \
+     -d '{
+           "config_category": "system-maintenance",
+           "namespace": "backend",
+           "auto_delete": "false",
+           "sleep_time": "240",
+           "services" : "your-server"
+         }'
+```
+
+### delete
+```
+curl -X POST https://localhost:5000/maintainer/plugin/delete \
+     -H "Content-Type: application/json" \
+     -d '{
+           "config_category": "system-maintenance",
+           "namespace": "backend",
+           "services" : "your-server"
+         }'
+```
+
+## Uninstalling the Chart
+
+To uninstall/delete the `kube-maintainer` chart:
+
+```console
+helm delete -n kube-maintainer kube-maintainer
+```
+
+The command removes all the Kubernetes components associated with the chart and deletes the release.
+
+{{ template "chart.valuesSection" . }}
+{{ template "chart.sourcesSection" . }}
+{{ template "chart.requirementsSection" . }}
+{{ template "chart.maintainersSection" . }}

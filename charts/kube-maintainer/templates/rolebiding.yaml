@@ -1,0 +1,20 @@
+{{/* vim: set filetype=mustache: */}}
+{{- $targetNamespaces := .Values.targetNamespaces | default (list "default") -}}
+{{- range $namespace := $targetNamespaces }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "kube-maintainer.name" $ }}-rolebinding
+  namespace: {{ $namespace }}
+  labels:
+{{ include "kube-maintainer.labels" $ | indent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kube-maintainer.serviceAccountName" $ }}
+    namespace: {{ include "kube-maintainer.namespace" $ }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "kube-maintainer.name" $ }}-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+{{- end }}

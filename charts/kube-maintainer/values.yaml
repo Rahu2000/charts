@@ -1,0 +1,74 @@
+nameOverride:
+fullnameOverride:
+
+namespace: kube-system
+
+image:
+  repository: rahu2000/kube-maintainer
+  tag: 0.1.0
+  pullPolicy: IfNotPresent
+replicas: 1
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+extraEnv:
+  []
+  # - name: AUTO_DELETE
+  #   value: "true" # 자동 삭제 여부
+  # - name: SLEEP_TIME
+  #   value: "60" # 주기
+  # - name: LOG_LEVEL
+  #   value: "debug" # 로그 레벨
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 5000
+  initialDelaySeconds: 10
+  periodSeconds: 10
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 5000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+## kube-maintainer의 관리 대상 namespace 목록.
+## 입력하지 않는 경우 default로 default namespace를 대상으로 합니다.
+targetNamespaces:
+  []
+  # - backend
+
+## Release.namespace와 targetNamespaces에 지정된 namespace에 대한 RoleBinding을 생성합니다.
+serviceAccount:
+  create: true
+  name: ""
+
+## ingress 설정
+ingress:
+  enabled: false
+
+## configMap을 추가하면, deployment.yaml에 volumeMounts와 volumes가 추가됩니다.
+## configMap의 name은 templates/configmap-maintenance.yaml에 정의된 name을 사용합니다.
+configMaps:
+  - name: system-maintenance
+    enabled: true # configMap을 생성할지 여부
+    data: # data는 configMap의 데이터를 정의하며 configmap 유형에 따라 다릅니다.
+      host: your-domain.com # 호스트
+      services:
+        - your-service
+      responseBody: |
+        {
+          "responseCode": 401,
+          "errorType": "SystemMaintenance",
+          "errorTarget": "AuthToken",
+          "errorReason": "Blank",
+          "errorCode": 1201,
+          "errorMessage": "Currently undergoing system maintenance"
+        }
