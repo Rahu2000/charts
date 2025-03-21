@@ -29,30 +29,44 @@ spec:
           env:
             - name: SLEEP_TIME
               value: "60" # 주기
-        {{- if .Values.extraEnv }}
+          {{- if .Values.extraEnv }}
           {{- range .Values.extraEnv }}
             - name: {{ .name }}
               value: {{ .value | quote }}
           {{- end }}
-        {{- end }}
-        {{- if .Values.configMaps }}
-          volumeMounts:
-          {{- range .Values.configMaps }}
-            - name: {{ .name }}-config
-              mountPath: /config/{{ .name }}
           {{- end }}
-        {{- end }}
+          {{- if .Values.configMaps }}
+          volumeMounts:
+          {{- $enabledVolumeMounts := false }}
+          {{- range $configMap := .Values.configMaps }}
+            {{- if $configMap.enabled }}
+            {{- $enabledVolumeMounts = true }}
+            - name: {{ $configMap.name }}-config
+              mountPath: /config/{{ $configMap.name }}
+            {{- end }}
+          {{- end }}
+          {{- if not $enabledVolumeMounts }}
+            []
+          {{- end }}
+          {{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           livenessProbe:
 {{ toYaml .Values.livenessProbe | indent 12 }}
           readinessProbe:
 {{ toYaml .Values.readinessProbe | indent 12 }}
-    {{- if .Values.configMaps }}
+      {{- if .Values.configMaps }}
       volumes:
-      {{- range .Values.configMaps }}
-        - name: {{ .name }}-config
+      {{- $enabledVolumes := false }}
+      {{- range $configMap := .Values.configMaps }}
+        {{- if $configMap.enabled }}
+        {{- $enabledVolumes = true }}
+        - name: {{ $configMap.name }}-config
           configMap:
-            name: {{ include "kube-maintainer.name" $ }}-{{ .name }}-config
+            name: {{ include "kube-maintainer.name" $ }}-{{ $configMap.name }}-config
+        {{- end }}
       {{- end }}
-    {{- end }}
+      {{- if not $enabledVolumes }}
+        {}
+      {{- end }}
+      {{- end }}
