@@ -60,9 +60,10 @@ configMaps:
   - name: system-maintenance
     enabled: true # configMap을 생성할지 여부
     data: # data는 configMap의 데이터를 정의하며 configmap 유형에 따라 다릅니다.
-      host: your-domain.com # 호스트
+      denyHost: your-domain.com # 호스트
       services:
         - your-service
+      responseCode: 401 # 응답 코드
       responseBody: |
         {
           "responseCode": 401,

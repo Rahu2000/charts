@@ -1,0 +1,29 @@
+# Ignore Helm chart artifacts
+*.tgz
+*.lock
+
+# Ignore temporary files
+*.swp
+*.bak
+*.tmp
+
+# Ignore IDE files
+.idea/
+.vscode/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore logs
+*.log
+
+# Ignore test output
+coverage/
+*.out
+
+# Ignore Kubernetes secrets
+secrets.yaml
+
+# Ignore Helm release files
+release.yaml

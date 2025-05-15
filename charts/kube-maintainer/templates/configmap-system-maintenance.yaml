@@ -38,11 +38,16 @@ data:
                 inline_code: |
                   function envoy_on_request(request_handle)
                     local authority = request_handle:headers():get(":authority") or "no-authority"
+                    local bypass_mode = request_handle:headers():get("X-BYPASS-MODE")
 
-                    -- 여기서 원하는 호스트에 대해서만 체크
-                    if authority == "{{ $configMap.data.host }}" then
-                      -- 이 요청이 타겟 호스트임을 표시하는 헤더 추가
-                      request_handle:streamInfo():dynamicMetadata():set("envoy.filters.http.lua", "x-filter-target-host", "true")
+                    if authority == "{{ $configMap.data.denyHost }}" then
+                      if not bypass_mode or bypass_mode ~= "true" then
+                        request_handle:streamInfo():dynamicMetadata():set("envoy.filters.http.lua", "x-filter-target-host", "true")
+                      else
+                        request_handle:streamInfo():dynamicMetadata():set("envoy.filters.http.lua", "x-filter-target-host", "false")
+                      end
+                    else
+                      request_handle:streamInfo():dynamicMetadata():set("envoy.filters.http.lua", "x-filter-target-host", "false")
                     end
                   end
 
@@ -53,7 +58,7 @@ data:
 
                     if is_target == "true" then
                       -- 타겟 호스트에 대해서만 응답 수정
-                      response_handle:headers():replace(":status", "401")
+                      response_handle:headers():replace(":status", {{ $configMap.data.responseCode }})
                       response_handle:headers():replace("content-type", "application/json")
 
                       local error_body = {{ $configMap.data.responseBody | quote }}
