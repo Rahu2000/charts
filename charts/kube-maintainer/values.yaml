@@ -57,12 +57,13 @@ ingress:
 ## configMap을 추가하면, deployment.yaml에 volumeMounts와 volumes가 추가됩니다.
 ## configMap의 name은 templates/configmap-maintenance.yaml에 정의된 name을 사용합니다.
 configMaps:
-  - name: system-maintenance
+  - name: envoyfilter
     enabled: true # configMap을 생성할지 여부
     data: # data는 configMap의 데이터를 정의하며 configmap 유형에 따라 다릅니다.
       denyHost: your-domain.com # 호스트
       services:
-        - your-service
+        - name: your-service
+          namespace: service-namespace
       responseCode: 401 # 응답 코드
       responseBody: |
         {

@@ -1,6 +1,6 @@
 {{- $configMaps := .Values.configMaps -}}
 {{- range $configMap := $configMaps }}
-{{- if and $configMap.enabled (eq $configMap.name "system-maintenance") }}
+{{- if and $configMap.enabled (eq $configMap.name "envoyfilter") }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,16 +9,16 @@ metadata:
 data:
 {{- if $configMap.data.services }}
 {{- range $service := $configMap.data.services }}
-  {{ $service }}.yaml: |
+  {{ $service.name }}.yaml: |
     apiVersion: networking.istio.io/v1alpha3
     kind: EnvoyFilter
     metadata:
-      name: {{ $service }}-lua-filter
-      namespace: backend
+      name: {{ $service.name }}-lua-filter
+      namespace: {{ $service.namespace }}
     spec:
       workloadSelector:
         labels:
-          app: {{ $service }}
+          app: {{ $service.name }}
       configPatches:
         - applyTo: HTTP_FILTER
           match:
@@ -39,33 +39,32 @@ data:
                   function envoy_on_request(request_handle)
                     local authority = request_handle:headers():get(":authority") or "no-authority"
                     local bypass_mode = request_handle:headers():get("X-BYPASS-MODE")
+                    local path = request_handle:headers():get(":path") or ""
+                    local method = request_handle:headers():get(":method") or ""
+                    local x_filter = "false"
 
-                    if authority == "{{ $configMap.data.denyHost }}" then
-                      if not bypass_mode or bypass_mode ~= "true" then
-                        request_handle:streamInfo():dynamicMetadata():set("envoy.filters.http.lua", "x-filter-target-host", "true")
-                      else
-                        request_handle:streamInfo():dynamicMetadata():set("envoy.filters.http.lua", "x-filter-target-host", "false")
-                      end
+                    -- OPTIONS 메서드는 모두 허용
+                    if string.upper(method) == "OPTIONS" then
+                      x_filter = "false"
                     else
-                      request_handle:streamInfo():dynamicMetadata():set("envoy.filters.http.lua", "x-filter-target-host", "false")
+                      if authority == "{{ $configMap.data.denyHost }}" then
+                        if not bypass_mode or bypass_mode ~= "true" then
+                          x_filter = "true"
+                        end
+                      end
                     end
+                    request_handle:streamInfo():dynamicMetadata():set("envoy.filters.http.lua", "x-filter-target-host", x_filter)
                   end
 
                   function envoy_on_response(response_handle)
-                    -- 타겟 호스트 체크
                     local is_target = response_handle:streamInfo():dynamicMetadata():get("envoy.filters.http.lua")["x-filter-target-host"]
-                    local status = response_handle:headers():get(":status") or "no-status"
-
                     if is_target == "true" then
-                      -- 타겟 호스트에 대해서만 응답 수정
                       response_handle:headers():replace(":status", {{ $configMap.data.responseCode }})
                       response_handle:headers():replace("content-type", "application/json")
-
                       local error_body = {{ $configMap.data.responseBody | quote }}
                       response_handle:body():setBytes(error_body)
                     end
                   end
-
 {{- end }}
 {{- else }}
   {}
